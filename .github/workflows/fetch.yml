@@ -3,7 +3,7 @@ name: hourly-fetch
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 * * * *'
+    - cron: '18 * * * *'
 
 jobs:
   fetch:
