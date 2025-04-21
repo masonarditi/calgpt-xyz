@@ -1,14 +1,24 @@
 name: hourly-fetch
+
 on:
-  workflow_dispatch:  
+  workflow_dispatch:
   schedule:
     - cron: '0 * * * *'
+
 jobs:
   fetch:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Run scraper
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Create virtualenv
+        run: python -m venv .venv
+
+      - name: Activate, install & run
         run: |
           source .venv/bin/activate
           pip install requests python-dotenv
