@@ -2,6 +2,7 @@
 import os
 import requests
 from dotenv import load_dotenv
+import json
 
 # load variables from .env in cwd
 load_dotenv()
@@ -36,7 +37,7 @@ def fetch():
     resp = requests.post(ENDPOINT, headers=HEADERS, json=PAYLOAD)
     resp.raise_for_status()
     data = resp.json()["data"]["allCourses"]["edges"]
-    print(data)  # replace with your storage logic
+    print(json.dumps(data, indent=2))  # replace with your storage logic
 
 if __name__ == "__main__":
     fetch()
