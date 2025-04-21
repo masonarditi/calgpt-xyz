@@ -23,3 +23,6 @@ jobs:
           source .venv/bin/activate
           pip install requests python-dotenv
           python fetch_courses.py >> fetch.log
+
+      - name: Show fetch.log
+        run: cat fetch.log
