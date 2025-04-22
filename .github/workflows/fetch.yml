@@ -1,29 +1,56 @@
-name: hourly-fetch
+name: hourly-fetch && gh pages
 
 on:
   workflow_dispatch:
   schedule:
     - cron: '18 * * * *'
 
-
 jobs:
-  fetch:
+  fetch-and-publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout main branch
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0           # needed to push to gh-pages
 
-      - uses: actions/setup-python@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
           python-version: '3.x'
 
-      - name: Create virtualenv
-        run: python -m venv .venv
-
-      - name: Activate, install & run
+      - name: Create venv & install deps
         run: |
+          python -m venv .venv
           source .venv/bin/activate
           pip install requests python-dotenv
-          python fetch_courses.py >> fetch.log
 
-      - name: Show fetch.log
+      - name: Fetch courses JSON
+        run: |
+          source .venv/bin/activate
+          python fetch_courses.py
+
+      - name: Rebuild FAISS index
+        run: |
+          source .venv/bin/activate
+          python build_index.py
+
+      - name: Show sample output
         run: cat fetch.log
+
+      - name: Switch to gh-pages branch
+        run: |
+          git checkout gh-pages || git checkout --orphan gh-pages
+          git reset --hard
+
+      - name: Copy latest JSON into place
+        run: |
+          cp course_results.json course_results.json
+
+      - name: Commit & push to gh-pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "actions@github.com"
+          git add course_results.json
+          git commit -m "chore: update course_results.json [skip ci]" || echo "No changes to commit"
+          git push origin gh-pages --force
