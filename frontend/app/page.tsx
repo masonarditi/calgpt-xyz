@@ -4,11 +4,35 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Lock, Send } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 
 export default function ChatInput() {
   const [input, setInput] = useState("");
   const [personalized, setPersonalized] = useState(false);
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [isPlaceholderVisible, setIsPlaceholderVisible] = useState(true);
+
+  const placeholders = [
+    "Who are the alumni working in artificial intelligence at Google?",
+    "What courses should I take for a career in fintech?",
+    "Which professors have research experience in quantum computing?",
+    "Are there any alumni who founded successful startups?",
+    "What internship opportunities exist for computer science majors?"
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsPlaceholderVisible(false);
+      
+      setTimeout(() => {
+        setPlaceholderIndex((prevIndex) => (prevIndex + 1) % placeholders.length);
+        setIsPlaceholderVisible(true);
+      }, 200);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSend = () => {
     // Replace this with your send logic
@@ -21,8 +45,12 @@ export default function ChatInput() {
         <Input
           value={input}
           onChange={e => setInput(e.target.value)}
-          placeholder="Who are the alumni working in artificial intelligence at Google?"
+          placeholder={placeholders[placeholderIndex]}
           className="pl-4 pr-12 py-6 text-base bg-transparent border-none placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0"
+          style={{
+            opacity: isPlaceholderVisible ? 1 : 0,
+            transition: "opacity 300ms ease-in-out"
+          }}
         />
         <Button
           type="button"
