@@ -1,4 +1,4 @@
-name: hourly-fetch && gh pages
+name: hourly-fetch
 
 on:
   workflow_dispatch:
