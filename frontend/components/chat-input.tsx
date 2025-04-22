@@ -1,56 +1,57 @@
 "use client"
 
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
-import { Lock, Send } from "lucide-react";
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
+import { Button } from "@/components/ui/button"
+import { Lock, Send } from "lucide-react"
+import React, { useState, useEffect } from "react"
+import { motion } from "framer-motion"
 
-export default function ChatInput() {
-  const [input, setInput] = useState("");
-  const [personalized, setPersonalized] = useState(false);
-  const [placeholderIndex, setPlaceholderIndex] = useState(0);
-  const [isPlaceholderVisible, setIsPlaceholderVisible] = useState(true);
+export default function ChatInput({ onSend }: { onSend: (msg: string, personalized: boolean) => void }) {
+  const [input, setInput] = useState("")
+  const [personalized, setPersonalized] = useState(false)
+  const [placeholderIndex, setPlaceholderIndex] = useState(0)
+  const [isPlaceholderVisible, setIsPlaceholderVisible] = useState(true)
 
   const placeholders = [
     "Who are the alumni working in artificial intelligence at Google?",
     "What courses should I take for a career in fintech?",
     "Which professors have research experience in quantum computing?",
     "Are there any alumni who founded successful startups?",
-    "What internship opportunities exist for computer science majors?"
-  ];
+    "What internship opportunities exist for computer science majors?",
+  ]
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setIsPlaceholderVisible(false);
-      
+      setIsPlaceholderVisible(false)
       setTimeout(() => {
-        setPlaceholderIndex((prevIndex) => (prevIndex + 1) % placeholders.length);
-        setIsPlaceholderVisible(true);
-      }, 200);
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, []);
+        setPlaceholderIndex((i) => (i + 1) % placeholders.length)
+        setIsPlaceholderVisible(true)
+      }, 200)
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [])
 
   const handleSend = () => {
-    // Replace this with your send logic
-    setInput("");
-  };
+    if (input.trim()) {
+      onSend(input.trim(), personalized)
+      setInput("")
+    }
+  }
 
   return (
     <div className="w-full max-w-xl mx-auto bg-white bg-opacity-80 rounded-2xl border border-slate-300 shadow-sm p-0 flex flex-col">
       <div className="relative w-full flex items-center">
         <Input
           value={input}
-          onChange={e => setInput(e.target.value)}
+          onChange={(e) => setInput(e.target.value)}
           placeholder={placeholders[placeholderIndex]}
           className="pl-4 pr-12 py-6 text-base bg-transparent border-none placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0"
           style={{
             opacity: isPlaceholderVisible ? 1 : 0,
-            transition: "opacity 300ms ease-in-out"
+            transition: "opacity 300ms ease-in-out",
           }}
+          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
         />
         <Button
           type="button"
@@ -74,5 +75,5 @@ export default function ChatInput() {
         </label>
       </div>
     </div>
-  );
-} 
+  )
+}
