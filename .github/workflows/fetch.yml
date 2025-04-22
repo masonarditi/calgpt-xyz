@@ -49,6 +49,8 @@ jobs:
         run: |
           git checkout gh-pages || git checkout --orphan gh-pages
           git reset --hard
+          git clean -fd      # <— this deletes everything not tracked by Git
+      
 
       - name: Pull JSON from main
         run: |
