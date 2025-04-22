@@ -3,7 +3,7 @@
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
-import { Lock, Send } from "lucide-react"
+import { Lock, Send, Search } from "lucide-react"
 import React, { useState, useEffect } from "react"
 import { motion, useReducedMotion } from "framer-motion"
 
@@ -15,11 +15,11 @@ export default function ChatInput({ onSend }: { onSend: (msg: string, personaliz
   const prefersReducedMotion = useReducedMotion()
 
   const placeholders = [
-    "Who are the alumni working in artificial intelligence at Google?",
-    "What courses should I take for a career in fintech?",
-    "Which professors have research experience in quantum computing?",
-    "Are there any alumni who founded successful startups?",
-    "What internship opportunities exist for computer science majors?",
+    "Mind-bending philosophy courses",
+    "Classes that question everything",
+    "Understanding how society works",
+    "Easiest breadths that aren't boring",
+    "Cool science for non-majors",
   ]
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export default function ChatInput({ onSend }: { onSend: (msg: string, personaliz
 
   return (
     <motion.div 
-      className="w-full max-w-xl mx-auto bg-white rounded-2xl border border-slate-300 shadow-sm p-0 flex flex-col"
+      className="w-full max-w-xl mx-auto bg-white rounded-full border border-slate-200 shadow-md p-1 px-2 flex flex-col"
       initial={{ y: 50, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ 
@@ -52,44 +52,68 @@ export default function ChatInput({ onSend }: { onSend: (msg: string, personaliz
       }}
     >
       <div className="relative w-full flex items-center">
+        <div className="absolute left-3 text-slate-400">
+          <Search className="w-5 h-5" />
+        </div>
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={placeholders[placeholderIndex]}
-          className="pl-4 pr-12 py-6 text-base bg-transparent border-none placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0"
+          className="pl-10 pr-12 py-6 text-base bg-transparent border-none placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full"
           style={{
             opacity: isPlaceholderVisible ? 1 : 0,
             transition: "opacity 300ms ease-in-out",
           }}
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
         />
-        <div className="absolute right-2 bottom-2">
-          <Button
-            type="button"
-            size="icon"
-            className="bg-slate-200 text-slate-700 shadow-none hover:bg-slate-300 transition-colors duration-200"
-            disabled={!input}
-            onClick={handleSend}
+        <div className="absolute right-2">
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <Send className="w-5 h-5" />
-          </Button>
+            <Button
+              type="button"
+              size="icon"
+              className="bg-blue-500 hover:bg-blue-600 text-white shadow-sm transition-colors duration-200 rounded-full w-10 h-10"
+              disabled={!input}
+              onClick={handleSend}
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          </motion.div>
         </div>
       </div>
+      
+      {personalized && (
+        <motion.div 
+          className="flex items-center px-3 pb-2 pt-1"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <div className="flex items-center gap-1 text-xs text-blue-500">
+            <Lock className="w-3 h-3" />
+            <span>Personalized results enabled</span>
+          </div>
+        </motion.div>
+      )}
+      
       <motion.div 
-        className="flex items-center px-3 pb-3 pt-2"
+        className="flex items-center justify-end px-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.4, duration: 0.3 }}
+        style={{ height: 0, overflow: 'hidden', margin: 0 }}
       >
-        <Switch
-          checked={personalized}
-          onCheckedChange={setPersonalized}
-          className="mr-2"
-          id="personalized-switch"
-        />
-        <label htmlFor="personalized-switch" className="flex items-center gap-1 text-sm text-slate-500 cursor-pointer select-none">
-          Personalized <Lock className="w-3 h-3" />
-        </label>
+        <div className="flex items-center gap-1 text-xs text-slate-400 cursor-pointer select-none" onClick={() => setPersonalized(!personalized)}>
+          <span>{personalized ? 'Disable' : 'Enable'} personalized results</span>
+          <Switch
+            checked={personalized}
+            onCheckedChange={setPersonalized}
+            className="ml-1"
+            id="personalized-switch"
+          />
+        </div>
       </motion.div>
     </motion.div>
   )
