@@ -6,11 +6,11 @@ from langchain_community.llms import OpenAI
 from langchain.chains import RetrievalQA
 
 # 1) Load data + QA chain
-with open("course_results.json") as f:
+with open("../course_results.json") as f:
     courses = [e["node"] for e in json.load(f)]
 
 emb = OpenAIEmbeddings()
-db = FAISS.load_local("faiss_index", emb, allow_dangerous_deserialization=True)
+db = FAISS.load_local("../faiss_index", emb, allow_dangerous_deserialization=True)
 qa = RetrievalQA.from_chain_type(
     llm=OpenAI(temperature=0), chain_type="stuff", retriever=db.as_retriever()
 )
