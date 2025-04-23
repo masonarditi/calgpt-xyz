@@ -131,6 +131,23 @@ export default function HomePage() {
     }
   }
 
+  // Logo elements that will be reused to maintain consistency
+  const logoTitle = (
+    <>
+      <span className="text-slate-800">Cal</span>
+      <span className="text-blue-600">GPT</span>
+    </>
+  )
+
+  const bearEmoji = (
+    <motion.div 
+      whileHover={{ rotate: 10 }}
+      transition={{ type: "spring", stiffness: 400, damping: 10 }}
+    >
+      <span>🐻</span>
+    </motion.div>
+  )
+
   return (
     <div className="flex flex-col min-h-screen bg-blue-50 font-sans overflow-hidden">
       <AnimatePresence>
@@ -141,7 +158,6 @@ export default function HomePage() {
             initial={{ opacity: 1 }}
             exit={{ 
               opacity: 0,
-              y: -100,
               transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] }
             }}
           >
@@ -156,14 +172,10 @@ export default function HomePage() {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
+                layoutId="calgpt-logo"
               >
-                <h1 className="text-5xl font-extrabold text-slate-800 tracking-tight">Cal<span className="text-blue-600">GPT</span></h1>
-                <motion.div 
-                  whileHover={{ rotate: 10 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                >
-                  <span className="text-4xl">🐻</span>
-                </motion.div>
+                <h1 className="text-5xl font-extrabold tracking-tight">{logoTitle}</h1>
+                <span className="text-4xl">{bearEmoji}</span>
               </motion.div>
               
               <motion.p 
@@ -196,15 +208,13 @@ export default function HomePage() {
       >
         <div className="max-w-xl mx-auto">
           {/* Small CalGPT logo - only visible after first message */}
-          {hasSentFirstMessage && (
+          {(hasSentFirstMessage || isTransitioning) && (
             <motion.div 
               className="flex items-center justify-center gap-1 mb-2"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, delay: 0.2 }}
+              layoutId="calgpt-logo"
             >
-              <h3 className="text-lg font-bold text-slate-800 tracking-tight">Cal<span className="text-blue-600">GPT</span></h3>
-              <span className="text-lg">🐻</span>
+              <h3 className="text-lg font-bold tracking-tight">{logoTitle}</h3>
+              <span className="text-lg">{bearEmoji}</span>
             </motion.div>
           )}
           
