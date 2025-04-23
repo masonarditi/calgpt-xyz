@@ -1,6 +1,6 @@
-# .github/workflows/fetch.yml
 name: hourly-fetch
 
+# Grant write access so we can push to gh-pages
 permissions:
   contents: write
 
@@ -35,12 +35,12 @@ jobs:
       - name: Fetch courses JSON
         run: |
           source .venv/bin/activate
-          python fetch_courses.py >> fetch.log
+          python fetch_courses.py
 
       - name: Rebuild FAISS index
         run: |
           source .venv/bin/activate
-          python build_index.py >> fetch.log
+          python build_index.py
 
       - name: Show fetch.log
         run: cat fetch.log
@@ -49,10 +49,12 @@ jobs:
         run: |
           git checkout gh-pages || git checkout --orphan gh-pages
           git reset --hard
-          git clean -fd
+          git clean -fd      # <— this deletes everything not tracked by Git
+      
 
       - name: Pull JSON from main
-        run: git checkout main -- course_results.json
+        run: |
+          git checkout main -- course_results.json
 
       - name: Commit & push to gh-pages
         run: |
