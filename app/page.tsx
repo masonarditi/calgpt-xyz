@@ -131,6 +131,23 @@ export default function HomePage() {
     }
   }
 
+  // Control delayed animation of chat content
+  const [showChatContent, setShowChatContent] = useState(false);
+  
+  // When transitioning state or messages change, manage visibility of chat content
+  useEffect(() => {
+    if (isTransitioning) {
+      setShowChatContent(false);
+    } else if (hasSentFirstMessage && messages.length > 0) {
+      // Delay showing chat content until the transition animation completes
+      const timer = setTimeout(() => {
+        setShowChatContent(true);
+      }, 300); // Delay for smooth appearance after transition
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isTransitioning, hasSentFirstMessage, messages]);
+  
   // Logo elements that will be reused to maintain consistency
   const logoTitle = (
     <>
@@ -190,7 +207,9 @@ export default function HomePage() {
             
             {/* Chat input for initial screen */}
             <div className="w-full max-w-xl px-4">
-              <ChatInput onSend={handleSend} />
+              <motion.div layoutId="chat-input">
+                <ChatInput onSend={handleSend} />
+              </motion.div>
             </div>
           </motion.div>
         )}
@@ -199,12 +218,9 @@ export default function HomePage() {
       {/* Fixed Chat Input at the top - Animates in after first message */}
       <motion.div 
         className="sticky top-0 z-20 bg-blue-50 pt-6 pb-2 px-4"
-        initial={!hasSentFirstMessage ? { opacity: 0, y: -50 } : { opacity: 1, y: 0 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ 
-          duration: 0.6, 
-          ease: [0.22, 1, 0.36, 1]
-        }}
+        initial={!hasSentFirstMessage && !isTransitioning ? { opacity: 0 } : { opacity: 1 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className="max-w-xl mx-auto">
           {/* Small CalGPT logo - only visible after first message */}
@@ -218,17 +234,12 @@ export default function HomePage() {
             </motion.div>
           )}
           
-          <AnimatePresence>
-            {(hasSentFirstMessage || isTransitioning) && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3 }}
-              >
-                <ChatInput onSend={handleSend} />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Chat input for transitioned state */}
+          {(hasSentFirstMessage || isTransitioning) && (
+            <motion.div layoutId="chat-input">
+              <ChatInput onSend={handleSend} />
+            </motion.div>
+          )}
         </div>
       </motion.div>
       
@@ -240,7 +251,14 @@ export default function HomePage() {
             {(messages.length > 0) && (
               <motion.div 
                 initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
+                animate={{ 
+                  opacity: showChatContent ? 1 : 0, 
+                  height: showChatContent ? 'auto' : 0,
+                  transition: {
+                    opacity: { duration: 0.4, delay: 0.1 },
+                    height: { duration: 0.5 }
+                  }
+                }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
                 className="overflow-hidden bg-white rounded-3xl shadow-md border-0"
@@ -250,8 +268,14 @@ export default function HomePage() {
                     <motion.div 
                       key={i} 
                       initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: i * 0.1 }}
+                      animate={{ 
+                        opacity: showChatContent ? 1 : 0, 
+                        y: showChatContent ? 0 : 20 
+                      }}
+                      transition={{ 
+                        duration: 0.3, 
+                        delay: showChatContent ? 0.2 + i * 0.1 : 0 
+                      }}
                       className={`${m.from === 'user' ? 'text-right' : 'text-left'} mb-2`}
                     >
                       <span className={`${m.from === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100'} inline-block p-3 rounded-2xl ${m.from === 'user' ? 'rounded-tr-sm' : 'rounded-tl-sm'}`}>
@@ -262,7 +286,8 @@ export default function HomePage() {
                   {loading && (
                     <motion.div 
                       initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
+                      animate={{ opacity: showChatContent ? 1 : 0 }}
+                      transition={{ duration: 0.3 }}
                       className="text-left mb-2"
                     >
                       <span className="bg-gray-100 inline-block p-3 rounded-2xl rounded-tl-sm">
@@ -281,13 +306,17 @@ export default function HomePage() {
 
           {/* Course Cards Section */}
           <AnimatePresence mode="wait">
-            {currentCourses && currentCourses.length > 0 ? (
+            {currentCourses && currentCourses.length > 0 && showChatContent ? (
               <motion.div 
                 key="course-cards"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10, height: 0 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                transition={{ 
+                  duration: 0.5, 
+                  ease: [0.22, 1, 0.36, 1],
+                  delay: 0.2 // Slight delay after chat messages
+                }}
                 className="w-full bg-white/80 backdrop-blur-sm rounded-3xl shadow-sm p-3"
               >
                 <h3 className="text-xs text-blue-600 font-medium px-2 mb-2">Related Courses</h3>
