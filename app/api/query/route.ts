@@ -6,14 +6,14 @@ export async function POST(request: Request) {
   const { question } = await request.json()
   console.log(`[API] Received question: ${question}`)
 
-  // Resolve the Python script one level up from your frontend directory
-  const scriptPath = path.resolve(process.cwd(), '..','query.py')
+  // We're already in the project root, so just grab query.py here
+  const scriptPath = path.join(process.cwd(), 'query.py')
   console.log(`[API] Executing Python script at: ${scriptPath}`)
 
   return new Promise<NextResponse>((resolve) => {
-    const py = spawn('/usr/bin/python', [scriptPath], {
+    const py = spawn('python', [scriptPath], {
       cwd: process.cwd(),
-      env: { ...process.env },
+      env: process.env,
     })
 
     let out = ''
@@ -24,12 +24,10 @@ export async function POST(request: Request) {
 
     py.on('close', (code) => {
       if (code !== 0) {
-        console.log(`[API] Error from Python: ${err.trim()}`)
-        resolve(
-          NextResponse.json({ error: err.trim() }, { status: 500 })
-        )
+        console.error(`[API] Python error: ${err.trim()}`)
+        resolve(NextResponse.json({ error: err.trim() }, { status: 500 }))
       } else {
-        console.log(`[API] Sending response: ${out.trim()}`)
+        console.log(`[API] Python output: ${out.trim()}`)
         resolve(NextResponse.json({ answer: out.trim() }))
       }
     })
