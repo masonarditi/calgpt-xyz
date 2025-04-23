@@ -1,2 +1,2 @@
 release: python fetch_courses.py && python build_index.py
-web: npm start --prefix frontend
+web: cd .. && source .venv/bin/activate && cd frontend && npm start
