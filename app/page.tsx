@@ -16,6 +16,18 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false)
   const [hasSentFirstMessage, setHasSentFirstMessage] = useState(false)
 
+  // Helper function to get courses from the latest assistant message
+  const getLatestCourses = () => {
+    // Find the last assistant message with courses
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const message = messages[i];
+      if (message.from === 'assistant' && message.courses && message.courses.length > 0) {
+        return message.courses;
+      }
+    }
+    return undefined;
+  }
+
   const handleSend = async (msg: string, personalized: boolean) => {
     if (!hasSentFirstMessage) {
       setHasSentFirstMessage(true)
@@ -72,6 +84,9 @@ export default function HomePage() {
       setLoading(false)
     }
   }
+
+  // Get latest courses for display
+  const latestCourses = getLatestCourses();
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-blue-50 p-4 font-sans">
@@ -134,17 +149,6 @@ export default function HomePage() {
                     <span className={`${m.from === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100'} inline-block p-3 rounded-2xl ${m.from === 'user' ? 'rounded-tr-sm' : 'rounded-tl-sm'}`}>
                       {m.text}
                     </span>
-                    
-                    {m.courses && m.courses.length > 0 && (
-                      <div className="mt-3 space-y-2">
-                        <h3 className="text-sm text-gray-500 ml-2">Course Information:</h3>
-                        <div className="space-y-2 ml-2">
-                          {m.courses.map((course, idx) => (
-                            <CourseCard key={idx} course={course} />
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </motion.div>
                 ))}
                 {loading && (
@@ -162,6 +166,26 @@ export default function HomePage() {
                     </span>
                   </motion.div>
                 )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Course Cards Section */}
+        <AnimatePresence>
+          {latestCourses && latestCourses.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full bg-white rounded-3xl shadow-md p-4"
+            >
+              <h3 className="text-sm text-gray-500 mb-3">Course Information:</h3>
+              <div className="space-y-2">
+                {latestCourses.map((course, idx) => (
+                  <CourseCard key={idx} course={course} />
+                ))}
               </div>
             </motion.div>
           )}
