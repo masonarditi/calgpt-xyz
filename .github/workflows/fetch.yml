@@ -1,6 +1,5 @@
 name: hourly-fetch
 
-# Grant write access so we can push to gh-pages
 permissions:
   contents: write
 
@@ -15,14 +14,12 @@ jobs:
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     steps:
-      - name: Checkout main branch
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.x'
 
@@ -35,26 +32,29 @@ jobs:
       - name: Fetch courses JSON
         run: |
           source .venv/bin/activate
-          python fetch_courses.py
+          python fetch_courses.py >> fetch.log
 
       - name: Rebuild FAISS index
         run: |
           source .venv/bin/activate
-          python build_index.py
+          python build_index.py >> fetch.log
 
       - name: Show fetch.log
         run: cat fetch.log
+
+      # ---> STASH the real JSON so it survives branch switch
+      - name: Stash generated JSON
+        run: mv course_results.json course_results.json.tmp
 
       - name: Switch to gh-pages branch
         run: |
           git checkout gh-pages || git checkout --orphan gh-pages
           git reset --hard
-          git clean -fd      # <— this deletes everything not tracked by Git
-      
+          git clean -fd
 
-      - name: Pull JSON from main
-        run: |
-          git checkout main -- course_results.json
+      # ---> RESTORE the JSON you stashed
+      - name: Restore latest JSON
+        run: mv course_results.json.tmp course_results.json
 
       - name: Commit & push to gh-pages
         run: |
