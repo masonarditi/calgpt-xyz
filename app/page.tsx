@@ -195,6 +195,19 @@ export default function HomePage() {
         }}
       >
         <div className="max-w-xl mx-auto">
+          {/* Small CalGPT logo - only visible after first message */}
+          {hasSentFirstMessage && (
+            <motion.div 
+              className="flex items-center justify-center gap-1 mb-2"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+            >
+              <h3 className="text-lg font-bold text-slate-800 tracking-tight">Cal<span className="text-blue-600">GPT</span></h3>
+              <span className="text-lg">🐻</span>
+            </motion.div>
+          )}
+          
           <AnimatePresence>
             {(hasSentFirstMessage || isTransitioning) && (
               <motion.div
