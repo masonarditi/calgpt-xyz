@@ -14,12 +14,14 @@ jobs:
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout main branch
+        uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - uses: actions/setup-python@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
           python-version: '3.x'
 
@@ -34,21 +36,25 @@ jobs:
           source .venv/bin/activate
           python fetch_courses.py >> fetch.log
 
+      - name: Debug after fetch
+        run: |
+          echo "Current directory: $(pwd)"
+          ls -la
+          head -n5 course_results.json || echo "No JSON found in workspace"
+
       - name: Rebuild FAISS index
         run: |
           source .venv/bin/activate
           python build_index.py >> fetch.log
 
-      - name: Show fetch.log
-        run: cat fetch.log
+      - name: Debug before stash
+        run: |
+          echo "Files before stashing JSON:"
+          ls -la
 
-      # ---> STASH the real JSON so it survives branch switch
       - name: Stash generated JSON
-        run: mv course_results.json course_results.json.tmp
-
-      - name: Debug workspace contents
-        run: ls -la
-      
+        run: |
+          mv course_results.json course_results.json.tmp
 
       - name: Switch to gh-pages branch
         run: |
@@ -56,9 +62,9 @@ jobs:
           git reset --hard
           git clean -fd
 
-      # ---> RESTORE the JSON you stashed
       - name: Restore latest JSON
-        run: mv course_results.json.tmp course_results.json
+        run: |
+          mv course_results.json.tmp course_results.json
 
       - name: Commit & push to gh-pages
         run: |
