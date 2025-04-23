@@ -7,7 +7,7 @@ export async function POST(request: Request) {
   console.log(`[API] Received question: ${question}`)
 
   // Resolve the Python script one level up from your frontend directory
-  const scriptPath = path.resolve(process.cwd(), 'query.py')
+  const scriptPath = path.resolve(process.cwd(), '..', 'query.py')
   console.log(`[API] Executing Python script at: ${scriptPath}`)
 
   return new Promise<NextResponse>((resolve) => {
