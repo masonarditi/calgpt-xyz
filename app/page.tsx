@@ -186,7 +186,7 @@ export default function HomePage() {
       
       {/* Fixed Chat Input at the top - Animates in after first message */}
       <motion.div 
-        className="sticky top-0 z-20 bg-blue-50 shadow-sm pt-4 pb-2 px-4"
+        className="sticky top-0 z-20 bg-blue-50 pt-6 pb-2 px-4"
         initial={!hasSentFirstMessage ? { opacity: 0, y: -50 } : { opacity: 1, y: 0 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ 
@@ -210,7 +210,7 @@ export default function HomePage() {
       </motion.div>
       
       {/* Main Content Area */}
-      <div className="flex-1 p-4 pb-20 pt-4">
+      <div className="flex-1 p-4 pb-20 pt-6">
         <div className="max-w-xl mx-auto flex flex-col gap-4">
           {/* Chat Messages */}
           <AnimatePresence>
@@ -220,7 +220,7 @@ export default function HomePage() {
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="overflow-hidden bg-white rounded-3xl shadow-md"
+                className="overflow-hidden bg-white rounded-3xl shadow-md border-0"
               >
                 <div className="h-auto max-h-96 overflow-auto p-4">
                   {messages.map((m, i) => (
