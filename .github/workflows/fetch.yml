@@ -14,7 +14,7 @@ jobs:
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     steps:
-      - name: Checkout main branch
+      - name: Checkout main
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -36,40 +36,29 @@ jobs:
           source .venv/bin/activate
           python fetch_courses.py >> fetch.log
 
-      - name: Debug after fetch
-        run: |
-          echo "Current directory: $(pwd)"
-          ls -la
-          head -n5 course_results.json || echo "No JSON found in workspace"
-
       - name: Rebuild FAISS index
         run: |
           source .venv/bin/activate
           python build_index.py >> fetch.log
 
-      - name: Debug before stash
-        run: |
-          echo "Files before stashing JSON:"
-          ls -la
-
       - name: Stash generated JSON
         run: |
-          mv course_results.json course_results.json.tmp
+          mv course_results.json /tmp/course_results.json
 
-      - name: Switch to gh-pages branch
+      - name: Switch to gh-pages
         run: |
           git checkout gh-pages || git checkout --orphan gh-pages
           git reset --hard
           git clean -fd
 
-      - name: Restore latest JSON
+      - name: Restore JSON
         run: |
-          mv course_results.json.tmp course_results.json
+          cp /tmp/course_results.json course_results.json
 
       - name: Commit & push to gh-pages
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "actions@github.com"
           git add course_results.json
-          git commit -m "chore: update course_results.json [skip ci]" || echo "No changes to commit"
+          git commit -m "chore: update course_results.json [skip ci]" || echo "No changes"
           git push origin gh-pages --force
