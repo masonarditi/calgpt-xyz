@@ -20,7 +20,7 @@ courses = [e["node"] for e in resp.json()]
 # 2) Load FAISS index & QA chain
 emb = OpenAIEmbeddings()
 db = FAISS.load_local(
-    "faiss_index",
+    "../faiss_index",
     emb,
     allow_dangerous_deserialization=True
 )
