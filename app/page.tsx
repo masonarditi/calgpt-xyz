@@ -142,7 +142,7 @@ export default function HomePage() {
       // Delay showing chat content until the transition animation completes
       const timer = setTimeout(() => {
         setShowChatContent(true);
-      }, 300); // Delay for smooth appearance after transition
+      }, 200); // Reduced from 300ms to 200ms for faster appearance
       
       return () => clearTimeout(timer);
     }
@@ -255,12 +255,12 @@ export default function HomePage() {
                   opacity: showChatContent ? 1 : 0, 
                   height: showChatContent ? 'auto' : 0,
                   transition: {
-                    opacity: { duration: 0.4, delay: 0.1 },
-                    height: { duration: 0.5 }
+                    opacity: { duration: 0.3, delay: 0.05 },
+                    height: { duration: 0.4 }
                   }
                 }}
                 exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                 className="overflow-hidden bg-white rounded-3xl shadow-md border-0"
               >
                 <div className="h-auto max-h-96 overflow-auto p-4">
@@ -273,8 +273,8 @@ export default function HomePage() {
                         y: showChatContent ? 0 : 20 
                       }}
                       transition={{ 
-                        duration: 0.3, 
-                        delay: showChatContent ? 0.2 + i * 0.1 : 0 
+                        duration: 0.25, 
+                        delay: showChatContent ? 0.1 + i * 0.08 : 0 
                       }}
                       className={`${m.from === 'user' ? 'text-right' : 'text-left'} mb-2`}
                     >
@@ -287,7 +287,7 @@ export default function HomePage() {
                     <motion.div 
                       initial={{ opacity: 0 }}
                       animate={{ opacity: showChatContent ? 1 : 0 }}
-                      transition={{ duration: 0.3 }}
+                      transition={{ duration: 0.25 }}
                       className="text-left mb-2"
                     >
                       <span className="bg-gray-100 inline-block p-3 rounded-2xl rounded-tl-sm">
@@ -313,9 +313,9 @@ export default function HomePage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10, height: 0 }}
                 transition={{ 
-                  duration: 0.5, 
+                  duration: 0.4, 
                   ease: [0.22, 1, 0.36, 1],
-                  delay: 0.2 // Slight delay after chat messages
+                  delay: 0.15 // Reduced from 0.2 to 0.15
                 }}
                 className="w-full bg-white/80 backdrop-blur-sm rounded-3xl shadow-sm p-3"
               >
