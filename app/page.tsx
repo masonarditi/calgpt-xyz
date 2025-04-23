@@ -18,6 +18,7 @@ export default function HomePage() {
   const [hasSentFirstMessage, setHasSentFirstMessage] = useState(false)
   const [currentCourses, setCurrentCourses] = useState<CourseData[] | undefined>(undefined)
   const lastMessageTimestampRef = useRef<number>(0)
+  const [isTransitioning, setIsTransitioning] = useState(false)
 
   // Update courses whenever messages change
   useEffect(() => {
@@ -53,7 +54,14 @@ export default function HomePage() {
 
   const handleSend = async (msg: string, personalized: boolean) => {
     if (!hasSentFirstMessage) {
-      setHasSentFirstMessage(true)
+      // Start transition animation
+      setIsTransitioning(true);
+      
+      // Wait for animation to complete before changing the state
+      setTimeout(() => {
+        setHasSentFirstMessage(true);
+        setIsTransitioning(false);
+      }, 600);
     }
     
     const timestamp = Date.now();
@@ -124,136 +132,152 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-blue-50 font-sans">
-      {/* Initial centered content - Only shown before first message */}
-      {!hasSentFirstMessage && (
-        <div className="flex flex-col justify-center items-center flex-1">
+    <div className="flex flex-col min-h-screen bg-blue-50 font-sans overflow-hidden">
+      <AnimatePresence>
+        {/* Initial centered content - Animates out on first message */}
+        {!hasSentFirstMessage && !isTransitioning && (
           <motion.div 
-            className="mb-6"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ 
-              duration: 0.7, 
-              ease: [0.22, 1, 0.36, 1]
+            className="flex flex-col justify-center items-center absolute inset-0 z-10 bg-blue-50"
+            initial={{ opacity: 1 }}
+            exit={{ 
+              opacity: 0,
+              y: -100,
+              transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] }
             }}
           >
             <motion.div 
-              className="flex items-center justify-center gap-2"
-              initial={{ opacity: 0, y: -10 }}
+              className="mb-6"
+              initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
+              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             >
-              <h1 className="text-5xl font-extrabold text-slate-800 tracking-tight">Cal<span className="text-blue-600">GPT</span></h1>
               <motion.div 
-                whileHover={{ rotate: 10 }}
-                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                className="flex items-center justify-center gap-2"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
               >
-                <span className="text-4xl">🐻</span>
+                <h1 className="text-5xl font-extrabold text-slate-800 tracking-tight">Cal<span className="text-blue-600">GPT</span></h1>
+                <motion.div 
+                  whileHover={{ rotate: 10 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                >
+                  <span className="text-4xl">🐻</span>
+                </motion.div>
               </motion.div>
+              
+              <motion.p 
+                className="text-xl text-slate-600 text-center mt-2"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+              >
+                Schedule your classes better with AI
+              </motion.p>
             </motion.div>
             
-            <motion.p 
-              className="text-xl text-slate-600 text-center mt-2"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-            >
-              Schedule your classes better with AI
-            </motion.p>
+            {/* Chat input for initial screen */}
+            <div className="w-full max-w-xl px-4">
+              <ChatInput onSend={handleSend} />
+            </div>
           </motion.div>
-          
-          {/* Chat input for initial screen */}
-          <div className="w-full max-w-xl px-4">
-            <ChatInput onSend={handleSend} />
-          </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
       
-      {/* Fixed Chat Input at the top - Only shown after first message */}
-      {hasSentFirstMessage && (
-        <motion.div 
-          className="sticky top-0 z-10 bg-blue-50 shadow-sm pt-4 pb-2 px-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="max-w-xl mx-auto">
-            <ChatInput onSend={handleSend} />
-          </div>
-        </motion.div>
-      )}
+      {/* Fixed Chat Input at the top - Animates in after first message */}
+      <motion.div 
+        className="sticky top-0 z-20 bg-blue-50 shadow-sm pt-4 pb-2 px-4"
+        initial={!hasSentFirstMessage ? { opacity: 0, y: -50 } : { opacity: 1, y: 0 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ 
+          duration: 0.6, 
+          ease: [0.22, 1, 0.36, 1]
+        }}
+      >
+        <div className="max-w-xl mx-auto">
+          <AnimatePresence>
+            {(hasSentFirstMessage || isTransitioning) && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ChatInput onSend={handleSend} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </motion.div>
       
       {/* Main Content Area */}
-      {hasSentFirstMessage && (
-        <div className="flex-1 p-4 pb-20">
-          <div className="max-w-xl mx-auto flex flex-col gap-4">
-            {/* Chat Messages */}
-            <AnimatePresence>
-              {(messages.length > 0) && (
-                <motion.div 
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                  className="overflow-hidden bg-white rounded-3xl shadow-md"
-                >
-                  <div className="h-auto max-h-96 overflow-auto p-4">
-                    {messages.map((m, i) => (
-                      <motion.div 
-                        key={i} 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: i * 0.1 }}
-                        className={`${m.from === 'user' ? 'text-right' : 'text-left'} mb-2`}
-                      >
-                        <span className={`${m.from === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100'} inline-block p-3 rounded-2xl ${m.from === 'user' ? 'rounded-tr-sm' : 'rounded-tl-sm'}`}>
-                          {m.text}
+      <div className="flex-1 p-4 pb-20 pt-4">
+        <div className="max-w-xl mx-auto flex flex-col gap-4">
+          {/* Chat Messages */}
+          <AnimatePresence>
+            {(messages.length > 0) && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                className="overflow-hidden bg-white rounded-3xl shadow-md"
+              >
+                <div className="h-auto max-h-96 overflow-auto p-4">
+                  {messages.map((m, i) => (
+                    <motion.div 
+                      key={i} 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: i * 0.1 }}
+                      className={`${m.from === 'user' ? 'text-right' : 'text-left'} mb-2`}
+                    >
+                      <span className={`${m.from === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100'} inline-block p-3 rounded-2xl ${m.from === 'user' ? 'rounded-tr-sm' : 'rounded-tl-sm'}`}>
+                        {m.text}
+                      </span>
+                    </motion.div>
+                  ))}
+                  {loading && (
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-left mb-2"
+                    >
+                      <span className="bg-gray-100 inline-block p-3 rounded-2xl rounded-tl-sm">
+                        <span className="inline-flex space-x-1">
+                          <span className="h-2 w-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                          <span className="h-2 w-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                          <span className="h-2 w-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
                         </span>
-                      </motion.div>
-                    ))}
-                    {loading && (
-                      <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="text-left mb-2"
-                      >
-                        <span className="bg-gray-100 inline-block p-3 rounded-2xl rounded-tl-sm">
-                          <span className="inline-flex space-x-1">
-                            <span className="h-2 w-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                            <span className="h-2 w-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                            <span className="h-2 w-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                          </span>
-                        </span>
-                      </motion.div>
-                    )}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                      </span>
+                    </motion.div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-            {/* Course Cards Section */}
-            <AnimatePresence mode="wait">
-              {currentCourses && currentCourses.length > 0 ? (
-                <motion.div 
-                  key="course-cards"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10, height: 0 }}
-                  transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                  className="w-full bg-white/80 backdrop-blur-sm rounded-3xl shadow-sm p-3"
-                >
-                  <h3 className="text-xs text-blue-600 font-medium px-2 mb-2">Related Courses</h3>
-                  <div className="space-y-1 px-1">
-                    {currentCourses.map((course, idx) => (
-                      <CourseCard key={`${course.id}-${idx}`} course={course} />
-                    ))}
-                  </div>
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
-          </div>
+          {/* Course Cards Section */}
+          <AnimatePresence mode="wait">
+            {currentCourses && currentCourses.length > 0 ? (
+              <motion.div 
+                key="course-cards"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10, height: 0 }}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                className="w-full bg-white/80 backdrop-blur-sm rounded-3xl shadow-sm p-3"
+              >
+                <h3 className="text-xs text-blue-600 font-medium px-2 mb-2">Related Courses</h3>
+                <div className="space-y-1 px-1">
+                  {currentCourses.map((course, idx) => (
+                    <CourseCard key={`${course.id}-${idx}`} course={course} />
+                  ))}
+                </div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
         </div>
-      )}
+      </div>
     </div>
   )
 }
