@@ -5,14 +5,13 @@ import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Lock, Send, Search } from "lucide-react"
 import React, { useState, useEffect } from "react"
-import { motion, useReducedMotion } from "framer-motion"
+import { motion } from "framer-motion"
 
 export default function ChatInput({ onSend }: { onSend: (msg: string, personalized: boolean) => void }) {
   const [input, setInput] = useState("")
   const [personalized, setPersonalized] = useState(false)
   const [placeholderIndex, setPlaceholderIndex] = useState(0)
   const [isPlaceholderVisible, setIsPlaceholderVisible] = useState(true)
-  const prefersReducedMotion = useReducedMotion()
 
   const placeholders = [
     "Mind-bending philosophy courses",
@@ -22,6 +21,7 @@ export default function ChatInput({ onSend }: { onSend: (msg: string, personaliz
     "Cool science for non-majors",
   ]
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const interval = setInterval(() => {
       setIsPlaceholderVisible(false)

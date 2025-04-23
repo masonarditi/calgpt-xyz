@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import ChatInput from '@/components/chatbox-ui'
 import { motion, AnimatePresence } from 'framer-motion'
-import Image from 'next/image'
 
 type Message = { from: 'user' | 'assistant'; text: string }
 
