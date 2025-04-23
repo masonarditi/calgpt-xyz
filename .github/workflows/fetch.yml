@@ -46,6 +46,10 @@ jobs:
       - name: Stash generated JSON
         run: mv course_results.json course_results.json.tmp
 
+      - name: Debug workspace contents
+        run: ls -la
+      
+
       - name: Switch to gh-pages branch
         run: |
           git checkout gh-pages || git checkout --orphan gh-pages
