@@ -179,10 +179,10 @@ export default function HomePage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-              className="w-full bg-white rounded-3xl shadow-md p-4"
+              className="w-full bg-white rounded-2xl shadow-sm p-3"
             >
-              <h3 className="text-sm text-gray-500 mb-3">Course Information:</h3>
-              <div className="space-y-2">
+              <h3 className="text-xs text-gray-500 mb-2 font-medium">Course Information</h3>
+              <div className="space-y-1">
                 {latestCourses.map((course, idx) => (
                   <CourseCard key={idx} course={course} />
                 ))}
