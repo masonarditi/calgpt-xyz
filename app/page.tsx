@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import ChatInput from '@/components/chatbox-ui'
 import { motion, AnimatePresence } from 'framer-motion'
 import CourseCard, { CourseData } from '@/components/CourseCard'
@@ -9,31 +9,55 @@ type Message = {
   from: 'user' | 'assistant'
   text: string
   courses?: CourseData[]
+  timestamp: number
 }
 
 export default function HomePage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(false)
   const [hasSentFirstMessage, setHasSentFirstMessage] = useState(false)
+  const [currentCourses, setCurrentCourses] = useState<CourseData[] | undefined>(undefined)
+  const lastMessageTimestampRef = useRef<number>(0)
 
-  // Helper function to get courses from the latest assistant message
-  const getLatestCourses = () => {
+  // Update courses whenever messages change
+  useEffect(() => {
+    if (messages.length === 0) return;
+    
     // Find the last assistant message with courses
+    let newestTimestamp = lastMessageTimestampRef.current;
+    let newestCourses: CourseData[] | undefined = undefined;
+    
     for (let i = messages.length - 1; i >= 0; i--) {
       const message = messages[i];
-      if (message.from === 'assistant' && message.courses && message.courses.length > 0) {
-        return message.courses;
+      if (message.from === 'assistant' && message.timestamp > newestTimestamp) {
+        // Update the newest timestamp even if there are no courses
+        newestTimestamp = message.timestamp;
+        
+        // If this message has courses, keep track of them
+        if (message.courses && message.courses.length > 0) {
+          newestCourses = message.courses;
+        } else {
+          // If the newest message has no courses, clear the display
+          newestCourses = undefined;
+        }
+        
+        // We found the newest message, so we can stop looking
+        break;
       }
     }
-    return undefined;
-  }
+    
+    // Update the ref and state
+    lastMessageTimestampRef.current = newestTimestamp;
+    setCurrentCourses(newestCourses);
+  }, [messages]);
 
   const handleSend = async (msg: string, personalized: boolean) => {
     if (!hasSentFirstMessage) {
       setHasSentFirstMessage(true)
     }
     
-    setMessages((m) => [...m, { from: 'user', text: msg }])
+    const timestamp = Date.now();
+    setMessages((m) => [...m, { from: 'user', text: msg, timestamp }])
     setLoading(true)
     try {
       const res = await fetch('/api/query', {
@@ -43,8 +67,13 @@ export default function HomePage() {
       })
       const { answer, error } = await res.json()
       
+      const responseTimestamp = Date.now();
       if (error) {
-        setMessages((m) => [...m, { from: 'assistant', text: `Error: ${error}` }])
+        setMessages((m) => [...m, { 
+          from: 'assistant', 
+          text: `Error: ${error}`,
+          timestamp: responseTimestamp
+        }])
       } else {
         // Try to parse the answer as JSON
         try {
@@ -66,7 +95,8 @@ export default function HomePage() {
             setMessages((m) => [...m, { 
               from: 'assistant', 
               text: parsedAnswer.text,
-              courses: parsedAnswer.courses && parsedAnswer.courses.length > 0 ? parsedAnswer.courses : undefined
+              courses: parsedAnswer.courses && parsedAnswer.courses.length > 0 ? parsedAnswer.courses : undefined,
+              timestamp: responseTimestamp
             }])
           } else {
             throw new Error('Invalid JSON structure');
@@ -74,19 +104,24 @@ export default function HomePage() {
         } catch (e) {
           console.log('Error parsing answer as JSON:', e);
           // If not JSON, just use the raw answer
-          setMessages((m) => [...m, { from: 'assistant', text: answer }])
+          setMessages((m) => [...m, { 
+            from: 'assistant', 
+            text: answer,
+            timestamp: responseTimestamp
+          }])
         }
       }
     } catch (e) {
       console.error('Network or parsing error:', e);
-      setMessages((m) => [...m, { from: 'assistant', text: 'Network or processing error' }])
+      setMessages((m) => [...m, { 
+        from: 'assistant', 
+        text: 'Network or processing error',
+        timestamp: Date.now()
+      }])
     } finally {
       setLoading(false)
     }
   }
-
-  // Get latest courses for display
-  const latestCourses = getLatestCourses();
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-blue-50 p-4 font-sans">
@@ -172,23 +207,24 @@ export default function HomePage() {
         </AnimatePresence>
 
         {/* Course Cards Section */}
-        <AnimatePresence>
-          {latestCourses && latestCourses.length > 0 && (
+        <AnimatePresence mode="wait">
+          {currentCourses && currentCourses.length > 0 ? (
             <motion.div
+              key="course-cards"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, height: 0 }}
+              exit={{ opacity: 0, y: -10, height: 0 }}
               transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
               className="w-full bg-white rounded-2xl shadow-sm p-3"
             >
               <h3 className="text-xs text-gray-500 mb-2 font-medium">Course Information</h3>
               <div className="space-y-1">
-                {latestCourses.map((course, idx) => (
-                  <CourseCard key={idx} course={course} />
+                {currentCourses.map((course, idx) => (
+                  <CourseCard key={`${course.id}-${idx}`} course={course} />
                 ))}
               </div>
             </motion.div>
-          )}
+          ) : null}
         </AnimatePresence>
         
         <motion.div
