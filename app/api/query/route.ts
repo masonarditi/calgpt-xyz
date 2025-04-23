@@ -27,8 +27,26 @@ export async function POST(request: Request) {
         console.error(`[API] Python error: ${err.trim()}`)
         resolve(NextResponse.json({ error: err.trim() }, { status: 500 }))
       } else {
-        console.log(`[API] Python output: ${out.trim()}`)
-        resolve(NextResponse.json({ answer: out.trim() }))
+        const output = out.trim()
+        console.log(`[API] Python output: ${output.substring(0, 200)}${output.length > 200 ? '...' : ''}`)
+        
+        // Try to determine if the output is JSON
+        try {
+          // Check if the output has a JSON structure (ignoring debug logs)
+          const jsonStartIndex = output.lastIndexOf('{"text":')
+          if (jsonStartIndex >= 0) {
+            const jsonOutput = output.substring(jsonStartIndex)
+            JSON.parse(jsonOutput) // Validate JSON
+            console.log(`[API] Detected and parsed JSON output`)
+            resolve(NextResponse.json({ answer: jsonOutput }))
+          } else {
+            console.log(`[API] Output is not JSON, returning as plain text`)
+            resolve(NextResponse.json({ answer: output }))
+          }
+        } catch (e) {
+          console.log(`[API] Error parsing JSON: ${e}. Returning plain text`)
+          resolve(NextResponse.json({ answer: output }))
+        }
       }
     })
 
