@@ -1,2 +1,2 @@
-release: python fetch_courses.py && python build_index.py
+release: python fetch_courses.py
 web: npm start
