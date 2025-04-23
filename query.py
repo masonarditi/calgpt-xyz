@@ -99,6 +99,52 @@ def process_answer(answer):
                 dept_courses = find_courses_by_dept(dept)
                 found_courses.extend(dept_courses)
     
+    # If still no courses found, try to match by title
+    if not found_courses:
+        print("[DEBUG] Checking for course titles in the answer")
+        # Look for course titles in the answer
+        for course in courses:
+            title = course["title"]
+            # Only check titles with at least 5 characters to avoid too many false positives
+            if len(title) >= 5 and title in answer:
+                print(f"[DEBUG] Found course by title: {course['abbreviation']} {course['courseNumber']} - {title}")
+                found_courses.append(course)
+                # Limit to 5 courses to avoid overwhelming the UI
+                if len(found_courses) >= 5:
+                    break
+        
+        # If still no courses found, try a more flexible approach with quotes and course name patterns
+        if not found_courses:
+            # Look for text in quotes that might be course titles
+            quoted_titles = re.findall(r'"([^"]+)"', answer)
+            print(f"[DEBUG] Found {len(quoted_titles)} quoted potential course titles")
+            
+            for quoted_text in quoted_titles:
+                # Clean up the quoted text
+                clean_text = quoted_text.strip()
+                if len(clean_text) < 5:  # Skip very short titles
+                    continue
+                    
+                # Find the most similar course title
+                best_match = None
+                best_match_ratio = 0
+                
+                for course in courses:
+                    title = course["title"]
+                    # Simple substring match first
+                    if clean_text in title or title in clean_text:
+                        ratio = len(clean_text) / max(len(clean_text), len(title))
+                        if ratio > best_match_ratio:
+                            best_match = course
+                            best_match_ratio = ratio
+                
+                # If we found a good match, add it
+                if best_match_ratio > 0.5:  # At least 50% similar
+                    print(f"[DEBUG] Found course by quoted title: {best_match['abbreviation']} {best_match['courseNumber']} - {best_match['title']}")
+                    found_courses.append(best_match)
+                    if len(found_courses) >= 5:
+                        break
+    
     # Always return as JSON
     result = json.dumps({
         "text": answer,
@@ -124,7 +170,8 @@ def answer(q):
     
     # Check if query is about open seats or available courses
     if re.search(r"\b(open|available|free|have)\b.*\b(seats|space|spots)\b", q_low) or \
-       re.search(r"\bwhat\b.*\b(courses|classes)\b", q_low):
+       re.search(r"\b(what|which|find|show|list|get|give|display)\b.*\b(courses|classes)\b", q_low) or \
+       re.search(r"\b(courses|classes)\b.*\b(open|available|free|have)\b", q_low):
         print("[DEBUG] Matched pattern for courses/classes with open seats")
         # Get a generic answer from the QA system
         answer_text = qa.run(q)
