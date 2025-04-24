@@ -36,13 +36,20 @@ def fetch():
     resp = requests.post(ENDPOINT, headers=HEADERS, json=PAYLOAD)
     resp.raise_for_status()
     edges = resp.json()["data"]["allCourses"]["edges"]
+    
+    # Filter out courses with openSeats = -1
+    original_count = len(edges)
+    filtered_edges = [edge for edge in edges if edge["node"]["openSeats"] != -1]
+    filtered_count = len(filtered_edges)
+    print(f"Filtered out {original_count - filtered_count} courses with openSeats = -1")
+    print(f"Keeping {filtered_count} courses with valid open seats")
 
     # persist to JSON file
     with open("course_results.json", "w") as f:
-        json.dump(edges, f, indent=2)
+        json.dump(filtered_edges, f, indent=2)
 
     # print pretty JSON for logging
-    print(json.dumps(edges, indent=2))
+    print(json.dumps(filtered_edges, indent=2))
 
 if __name__ == "__main__":
     fetch()
