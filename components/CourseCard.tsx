@@ -19,6 +19,12 @@ export default function CourseCard({ course }: { course: CourseData }) {
   const getGradeColor = () => {
     if (!course.letterAverage && !course.gradeAverage) return '';
     
+    // Check for -1 values which mean N/A
+    if ((course.letterAverage === '-1' || course.letterAverage === '-1.0') || 
+        (course.gradeAverage && course.gradeAverage === -1)) {
+      return 'bg-gray-100 text-gray-500';
+    }
+    
     // Use letter grade if available
     if (course.letterAverage) {
       const firstLetter = course.letterAverage.charAt(0);
@@ -39,6 +45,17 @@ export default function CourseCard({ course }: { course: CourseData }) {
     }
     
     return '';
+  };
+  
+  // Function to format the grade display
+  const getGradeDisplay = () => {
+    // Check for -1 values which mean N/A
+    if ((course.letterAverage === '-1' || course.letterAverage === '-1.0') || 
+        (course.gradeAverage && course.gradeAverage === -1)) {
+      return 'N/A';
+    }
+    
+    return course.letterAverage || (course.gradeAverage ? course.gradeAverage.toFixed(1) : '');
   };
   
   const gradeColorClass = getGradeColor();
@@ -72,11 +89,9 @@ export default function CourseCard({ course }: { course: CourseData }) {
             </div>
           )}
           
-          {(course.letterAverage || course.gradeAverage) && (
-            <div className={`rounded-full py-1 px-2 ${gradeColorClass}`}>
-              <span className="font-medium">Avg</span> {course.letterAverage || (course.gradeAverage ? course.gradeAverage.toFixed(1) : '')}
-            </div>
-          )}
+          <div className={`rounded-full py-1 px-2 ${gradeColorClass || 'bg-gray-100 text-gray-500'}`}>
+            <span className="font-medium">Avg</span> {getGradeDisplay() || 'N/A'}
+          </div>
           
           <div className="bg-gray-100 text-gray-700 rounded-full py-1 px-2">
             <span className="font-medium">Seats</span> {course.openSeats}
