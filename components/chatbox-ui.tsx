@@ -3,15 +3,16 @@
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
-import { Lock, Send, Search } from "lucide-react"
+import { Lock, Send, Search, AlertCircle } from "lucide-react"
 import React, { useState, useEffect } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 
 export default function ChatInput({ onSend }: { onSend: (msg: string, personalized: boolean) => void }) {
   const [input, setInput] = useState("")
   const [personalized, setPersonalized] = useState(false)
   const [placeholderIndex, setPlaceholderIndex] = useState(0)
   const [isPlaceholderVisible, setIsPlaceholderVisible] = useState(true)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const placeholders = [
     "What engineering classes have exactly a B average?",
@@ -33,10 +34,42 @@ export default function ChatInput({ onSend }: { onSend: (msg: string, personaliz
     return () => clearInterval(interval)
   }, [])
 
+  const validateQuery = (query: string): boolean => {
+    // Clear any existing error message
+    setErrorMessage(null)
+    
+    // Trim the input to remove whitespace
+    const trimmedQuery = query.trim()
+    
+    // Check if query is too short
+    if (trimmedQuery.length < 3) {
+      setErrorMessage("Please enter a more detailed question")
+      return false
+    }
+    
+    // Check if query is too vague
+    const vaguePhrases = ["help", "classes", "search", "find", "show me", "give me"]
+    if (vaguePhrases.some(phrase => trimmedQuery.toLowerCase() === phrase)) {
+      setErrorMessage("Please be more specific about what you're looking for")
+      return false
+    }
+    
+    // Check if query contains some context
+    const contextWords = ["class", "course", "classes", "courses", "average", "grade", "open seats", "available"]
+    if (!contextWords.some(word => trimmedQuery.toLowerCase().includes(word))) {
+      setErrorMessage("Please include keywords like 'class', 'course', 'grade', or 'seats'")
+      return false
+    }
+    
+    return true
+  }
+
   const handleSend = () => {
     if (input.trim()) {
-      onSend(input.trim(), personalized)
-      setInput("")
+      if (validateQuery(input)) {
+        onSend(input.trim(), personalized)
+        setInput("")
+      }
     }
   }
 
@@ -83,6 +116,21 @@ export default function ChatInput({ onSend }: { onSend: (msg: string, personaliz
           </motion.div>
         </div>
       </div>
+      
+      <AnimatePresence>
+        {errorMessage && (
+          <motion.div 
+            className="flex items-center px-3 py-2 mt-1 bg-amber-50 text-amber-700 text-xs rounded-lg"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <AlertCircle className="w-3 h-3 mr-1 flex-shrink-0" />
+            <span>{errorMessage}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       {personalized && (
         <motion.div 
