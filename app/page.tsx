@@ -179,7 +179,7 @@ export default function HomePage() {
             }}
           >
             <motion.div 
-              className="mb-6"
+              className="mb-6 mt-[-80px]"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
@@ -244,7 +244,7 @@ export default function HomePage() {
       </motion.div>
       
       {/* Main Content Area */}
-      <div className="flex-1 p-4 pb-20 pt-6">
+      <div className="flex-1 p-4 pb-28 pt-6">
         <div className="max-w-xl mx-auto flex flex-col gap-4">
           {/* Chat Messages */}
           <AnimatePresence>
