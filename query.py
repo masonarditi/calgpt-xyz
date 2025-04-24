@@ -421,6 +421,14 @@ def answer_with_context(question, chat_history=None):
     if chat_history:
         print(f"[DEBUG] Chat history provided with {len(chat_history)} messages")
     
+    # Special case: meaning of life
+    if re.search(r'what\s+is\s+the\s+meaning\s+of\s+life', question.lower()):
+        print("[DEBUG] Special case: meaning of life question detected")
+        return json.dumps({
+            "text": "gooning",
+            "courses": []
+        })
+    
     # Extract subject from question to guide search
     requested_subject = extract_subject_from_question(question)
     print(f"[DEBUG] Requested subject: {requested_subject}")

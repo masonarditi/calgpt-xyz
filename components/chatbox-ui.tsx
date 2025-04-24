@@ -14,11 +14,11 @@ export default function ChatInput({ onSend }: { onSend: (msg: string, personaliz
   const [isPlaceholderVisible, setIsPlaceholderVisible] = useState(true)
 
   const placeholders = [
-    "Mind-bending philosophy courses",
-    "Classes that question everything",
-    "Understanding how society works",
-    "Easiest breadths that aren't boring",
-    "Cool science for non-majors",
+    "What engineering classes have exactly a B average?",
+    "Show me easy math classes with a high average",
+    "What history classes still have open seats?",
+    "Show me a dance class with open seats",
+    "What is the meaning of life?",
   ]
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
