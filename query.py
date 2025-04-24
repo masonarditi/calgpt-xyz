@@ -62,6 +62,75 @@ def avg_enrolled(dept=None):
     print(f"[DEBUG] avg_enrolled returning: {result[:100]}...")
     return result
 
+# Function to find courses by grade criteria
+def find_courses_by_grade(min_grade, grade_format='letter', exact_match=False):
+    print(f"[DEBUG] Finding courses with {'exact' if exact_match else 'minimum'} grade: {min_grade}, format: {grade_format}")
+    
+    grade_courses = []
+    
+    # Define grade thresholds and their numerical equivalents
+    letter_to_number = {
+        'A+': 4.0, 'A': 4.0, 'A-': 3.7,
+        'B+': 3.3, 'B': 3.0, 'B-': 2.7,
+        'C+': 2.3, 'C': 2.0, 'C-': 1.7,
+        'D+': 1.3, 'D': 1.0, 'D-': 0.7,
+        'F': 0.0
+    }
+    
+    # The reverse mapping for showing letter grades
+    number_to_letter = {
+        4.0: 'A', 3.7: 'A-',
+        3.3: 'B+', 3.0: 'B', 2.7: 'B-',
+        2.3: 'C+', 2.0: 'C', 1.7: 'C-',
+        1.3: 'D+', 1.0: 'D', 0.7: 'D-',
+        0.0: 'F'
+    }
+    
+    # Convert letter grade to number if needed
+    target_grade_value = 0
+    if grade_format == 'letter':
+        # Handle '+' and '-' variations
+        min_grade = min_grade.upper().strip()
+        if min_grade in letter_to_number:
+            target_grade_value = letter_to_number[min_grade]
+        elif len(min_grade) > 0 and min_grade[0] in letter_to_number:
+            # If only the letter is given (e.g., "A" instead of "A-"), use the base value
+            target_grade_value = letter_to_number[min_grade[0]]
+    else:
+        # Convert numeric string to float if needed
+        try:
+            target_grade_value = float(min_grade)
+        except ValueError:
+            print(f"[DEBUG] Could not convert {min_grade} to a number")
+            return []
+    
+    print(f"[DEBUG] Target grade value: {target_grade_value}")
+    
+    # Filter courses by grade criteria
+    for course in courses:
+        # Skip courses without grade data or with null/None values
+        if 'gradeAverage' not in course or course['gradeAverage'] is None or course['gradeAverage'] == -1:
+            continue
+            
+        # Check if course meets the grade requirement (exact match or minimum)
+        if exact_match:
+            # For exact match, values should be equal
+            if abs(course['gradeAverage'] - target_grade_value) < 0.05:  # Small tolerance for floating point
+                grade_courses.append(course)
+        else:
+            # For "or better", course grade should be >= target
+            if course['gradeAverage'] >= target_grade_value:
+                grade_courses.append(course)
+    
+    # Sort courses by grade (highest first for "or better", closest to target for exact match)
+    if exact_match:
+        grade_courses.sort(key=lambda c: abs(c['gradeAverage'] - target_grade_value))
+    else:
+        grade_courses.sort(key=lambda c: c['gradeAverage'], reverse=True)
+    
+    print(f"[DEBUG] Found {len(grade_courses)} courses with grade {'=' if exact_match else '>='} {min_grade}")
+    return grade_courses[:10]  # Limit to 10 courses
+
 # Function to find courses by department
 def find_courses_by_dept(dept_name):
     dept_courses = [course for course in courses if course["abbreviation"] == dept_name and course["openSeats"] > 0][:3]
@@ -342,6 +411,7 @@ def answer_with_context(question, chat_history=None):
     
     # Extract subject from question to guide search
     requested_subject = extract_subject_from_question(question)
+    print(f"[DEBUG] Requested subject: {requested_subject}")
     
     # Build context string from chat history
     context = build_context_from_history(chat_history)
@@ -352,7 +422,160 @@ def answer_with_context(question, chat_history=None):
         context_enhanced_question = f"{context}\nCurrent question: {question}\n\nAnswer the current question using the previous conversation for context."
         print(f"[DEBUG] Enhanced question with context: {context_enhanced_question[:100]}...")
     
-    # Check if query is about specific subject courses
+    # Check for grade-related queries
+    q_low = question.lower()
+    
+    # Check if the query is looking for exact grade matches
+    is_exact_match = re.search(r'\b(exactly|precisely|equal\s+to|just)\b', q_low) is not None
+    print(f"[DEBUG] Is exact match query: {is_exact_match}")
+    
+    # Improved grade patterns
+    # First check for full pattern with grade and context
+    grade_pattern = r'\b(?:classes|courses)\b.+?\b([abcdf][+\-]?)\b.+?\b(?:average|avg|grade)\b|\b(?:average|avg|grade)\b.+?\b([abcdf][+\-]?)\b|\b([abcdf][+\-]?)\b.+?\b(?:average|avg|grade)\b'
+    
+    # Check for patterns like "A average or higher" or "with an A average"
+    grade_with_context_pattern = r'\b(?:with|has|having)\s+(?:an?|the)\s+([abcdf][+\-]?)\s+(?:average|avg|grade)'
+    
+    # Check for numeric patterns
+    numeric_grade_pattern = r'\b(?:classes|courses)\b.+?\b(\d+\.?\d*)\b.+?\b(?:average|avg|grade)\b|\b(?:average|avg|grade)\b.+?\b(\d+\.?\d*)\b'
+    
+    grade_match = re.search(grade_pattern, q_low)
+    grade_with_context_match = re.search(grade_with_context_pattern, q_low)
+    numeric_match = re.search(numeric_grade_pattern, q_low)
+    
+    # Use the most appropriate pattern match
+    letter_grade = None
+    
+    if grade_with_context_match:
+        # This is the most reliable pattern for extracting grades with context
+        letter_grade = grade_with_context_match.group(1).upper()
+        print(f"[DEBUG] Found letter grade from context pattern: {letter_grade}")
+    elif grade_match:
+        # Extract letter grade from the standard match groups
+        for group in grade_match.groups():
+            if group and re.match(r'[abcdf][+\-]?', group.lower()):
+                letter_grade = group.upper()
+                print(f"[DEBUG] Found letter grade from standard pattern: {letter_grade}")
+                break
+    
+    if letter_grade:
+        print(f"[DEBUG] Final letter grade requirement: {letter_grade}")
+        
+        grade_courses = find_courses_by_grade(letter_grade, 'letter', exact_match=is_exact_match)
+        
+        if grade_courses:
+            # Filter by subject if one was requested
+            if requested_subject:
+                subject_to_dept = {
+                    'math': ['MATH', 'STAT'],
+                    'computer science': ['COMPSCI', 'CS', 'DATA', 'INFO'],
+                    'engineering': ['ENGIN', 'EL ENG', 'MEC ENG', 'CIV ENG', 'BIO ENG', 'CHM ENG'],
+                    'physics': ['PHYSICS'],
+                    'chemistry': ['CHEM'],
+                    'classics': ['CLASSIC'],
+                    'biology': ['BIO', 'MCELLBI', 'INTEGBI'],
+                    'economics': ['ECON'],
+                    'history': ['HISTORY'],
+                    'english': ['ENGLISH'],
+                    'political science': ['POL SCI'],
+                }
+                
+                if requested_subject in subject_to_dept:
+                    target_depts = subject_to_dept[requested_subject]
+                    filtered_courses = [c for c in grade_courses if c["abbreviation"] in target_depts]
+                    print(f"[DEBUG] Filtered from {len(grade_courses)} to {len(filtered_courses)} courses in {requested_subject}")
+                    # Only use filtered courses if we found some, otherwise fall back to all courses
+                    if filtered_courses:
+                        grade_courses = filtered_courses
+            
+            # Limit the number of courses to return
+            selected_courses = grade_courses[:5]
+            
+            if not selected_courses:
+                if is_exact_match:
+                    text_response = f"I couldn't find any courses with an average grade of exactly {letter_grade}."
+                else:
+                    text_response = f"I couldn't find any courses with an average grade of {letter_grade} or better."
+            elif len(selected_courses) == 1:
+                if is_exact_match:
+                    text_response = f"I found one course with an average grade of exactly {letter_grade}: {selected_courses[0]['title']} ({selected_courses[0]['abbreviation']} {selected_courses[0]['courseNumber']}) with a grade average of {selected_courses[0]['letterAverage']} ({selected_courses[0]['gradeAverage']:.1f})."
+                else:
+                    text_response = f"I found one course with an average grade of {letter_grade} or better: {selected_courses[0]['title']} ({selected_courses[0]['abbreviation']} {selected_courses[0]['courseNumber']}) with a grade average of {selected_courses[0]['letterAverage']} ({selected_courses[0]['gradeAverage']:.1f})."
+            else:
+                grade_description = "exactly" if is_exact_match else "or better"
+                course_descriptions = [f"{c['title']} ({c['abbreviation']} {c['courseNumber']}) with a grade average of {c['letterAverage']} ({c['gradeAverage']:.1f})" for c in selected_courses]
+                text_response = f"Courses with an average grade of {letter_grade} {grade_description}: {', '.join(course_descriptions)}"
+            
+            result = json.dumps({
+                "text": text_response,
+                "courses": selected_courses
+            })
+            
+            print(f"[DEBUG] Returning {len(selected_courses)} courses based on grade criteria")
+            return result
+        else:
+            if is_exact_match:
+                text_response = f"I couldn't find any courses with an average grade of exactly {letter_grade}."
+            else:
+                text_response = f"I couldn't find any courses with an average grade of {letter_grade} or better."
+            return json.dumps({"text": text_response, "courses": []})
+    
+    elif numeric_match:
+        # Extract numeric grade from the match groups
+        for group in numeric_match.groups():
+            if group and re.match(r'\d+\.?\d*', group):
+                try:
+                    min_grade = float(group)
+                    print(f"[DEBUG] Found numeric grade requirement: {min_grade}")
+                    
+                    grade_courses = find_courses_by_grade(min_grade, 'numeric')
+                    
+                    if grade_courses:
+                        # Apply subject filtering if requested
+                        if requested_subject:
+                            subject_to_dept = {
+                                'math': ['MATH', 'STAT'],
+                                'computer science': ['COMPSCI', 'CS', 'DATA', 'INFO'],
+                                'engineering': ['ENGIN', 'EL ENG', 'MEC ENG', 'CIV ENG', 'BIO ENG', 'CHM ENG'],
+                                'physics': ['PHYSICS'],
+                                'chemistry': ['CHEM'],
+                                'classics': ['CLASSIC'],
+                                'biology': ['BIO', 'MCELLBI', 'INTEGBI'],
+                                'economics': ['ECON'],
+                                'history': ['HISTORY'],
+                                'english': ['ENGLISH'],
+                                'political science': ['POL SCI'],
+                            }
+                            
+                            if requested_subject in subject_to_dept:
+                                target_depts = subject_to_dept[requested_subject]
+                                grade_courses = [c for c in grade_courses if c["abbreviation"] in target_depts]
+                        
+                        # Limit the number of courses to return
+                        selected_courses = grade_courses[:5]
+                        
+                        if not selected_courses:
+                            text_response = f"I couldn't find any courses with an average grade of {min_grade} or better."
+                        elif len(selected_courses) == 1:
+                            text_response = f"I found one course with an average grade of {min_grade} or better: {selected_courses[0]['title']} ({selected_courses[0]['abbreviation']} {selected_courses[0]['courseNumber']}) with a grade average of {selected_courses[0]['gradeAverage']:.1f}."
+                        else:
+                            course_descriptions = [f"{c['title']} ({c['abbreviation']} {c['courseNumber']}) with a grade average of {c['gradeAverage']:.1f}" for c in selected_courses]
+                            text_response = f"Courses with an average grade of {min_grade} or better: {', '.join(course_descriptions)}"
+                        
+                        result = json.dumps({
+                            "text": text_response,
+                            "courses": selected_courses
+                        })
+                        
+                        print(f"[DEBUG] Returning {len(selected_courses)} courses based on numeric grade criteria")
+                        return result
+                    else:
+                        text_response = f"I couldn't find any courses with an average grade of {min_grade} or better."
+                        return json.dumps({"text": text_response, "courses": []})
+                except ValueError:
+                    pass  # If we can't convert to a number, continue with normal processing
+    
+    # Check if query is about specific subject courses with open seats
     if requested_subject and re.search(r'\b(open|available|free|have)\b.*\b(seats|space|spots)\b', question.lower()):
         print(f"[DEBUG] Query is about {requested_subject} courses with open seats")
         subject_to_dept = {
