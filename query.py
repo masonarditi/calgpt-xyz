@@ -78,79 +78,215 @@ def find_course_by_id(course_id):
     return None
 
 # Process answer for course IDs and department names
-def process_answer(answer):
+def process_answer(answer, question, requested_subject=None):
     print(f"[DEBUG] Processing answer: {answer[:50]}...")
     
-    # First check for course IDs in the format Q291cnNlVHlwZToxMjM0
-    course_id_pattern = r'Q291cnNlVHlwZTo[A-Za-z0-9+/=]+'
-    course_ids = re.findall(course_id_pattern, answer)
-    print(f"[DEBUG] Found {len(course_ids)} course IDs in answer")
+    # If we have a specific requested subject, prioritize those courses
+    if requested_subject:
+        print(f"[DEBUG] Prioritizing courses from subject: {requested_subject}")
+        subject_to_dept = {
+            'math': ['MATH', 'STAT'],
+            'computer science': ['COMPSCI', 'CS', 'DATA', 'INFO'],
+            'engineering': ['ENGIN', 'EL ENG', 'MEC ENG', 'CIV ENG', 'BIO ENG', 'CHM ENG'],
+            'physics': ['PHYSICS'],
+            'chemistry': ['CHEM'],
+            'classics': ['CLASSIC'],
+            'biology': ['BIO', 'MCELLBI', 'INTEGBI'],
+            'economics': ['ECON'],
+            'history': ['HISTORY'],
+            'english': ['ENGLISH'],
+            'political science': ['POL SCI'],
+        }
+        
+        if requested_subject in subject_to_dept:
+            # Check if any courses from this subject are explicitly mentioned
+            found_courses = []
+            
+            # First look for course codes in the answer text
+            course_code_pattern = r'([A-Z]+)\s+(\d+[A-Za-z0-9]*)'
+            course_codes = re.findall(course_code_pattern, answer)
+            
+            # Check if any mentioned courses match our subject departments
+            target_depts = subject_to_dept[requested_subject]
+            subject_courses_mentioned = False
+            
+            for dept, num in course_codes:
+                if dept in target_depts:
+                    subject_courses_mentioned = True
+                    matching_courses = [c for c in courses 
+                                      if c["abbreviation"] == dept and c["courseNumber"] == num]
+                    for course in matching_courses:
+                        if course not in found_courses:
+                            found_courses.append(course)
+            
+            # If no courses from our subject were mentioned, get all open courses from that subject
+            if not subject_courses_mentioned:
+                for dept in target_depts:
+                    dept_courses = find_courses_by_dept(dept)
+                    for course in dept_courses:
+                        if course not in found_courses:
+                            found_courses.append(course)
+            
+            # If we found courses from the requested subject, return them
+            if found_courses:
+                result = json.dumps({
+                    "text": answer,
+                    "courses": found_courses[:5]  # Limit to 5 courses
+                })
+                print(f"[DEBUG] Returning {len(found_courses[:5])} courses based on requested subject")
+                return result
+    
+    # Continue with regular course matching if no subject-specific courses were found
+    # First look for course codes in the answer text (e.g., COMPSCI 70)
+    course_code_pattern = r'([A-Z]+)\s+(\d+[A-Za-z0-9]*)'
+    course_codes = re.findall(course_code_pattern, answer)
+    print(f"[DEBUG] Found {len(course_codes)} course codes in answer")
     
     found_courses = []
     
-    # Add courses found by IDs
-    for course_id in course_ids:
-        course = find_course_by_id(course_id)
-        if course:
-            found_courses.append(course)
+    # Try to match courses by department and course number first
+    for dept, num in course_codes:
+        matching_courses = [c for c in courses 
+                          if c["abbreviation"] == dept and c["courseNumber"] == num]
+        if matching_courses:
+            print(f"[DEBUG] Found exact match for {dept} {num}")
+            # Add if not already in the list
+            for course in matching_courses:
+                if course not in found_courses:
+                    found_courses.append(course)
     
-    # If no courses found by IDs, try to find department names
-    if not found_courses:
-        print("[DEBUG] No courses found by IDs, checking department names")
-        # Look for department abbreviations in the answer
-        for dept in dept_abbreviations:
-            # Use word boundary to match whole abbreviations
-            if re.search(r'\b' + re.escape(dept) + r'\b', answer):
-                print(f"[DEBUG] Found department in answer: {dept}")
-                # Add some sample courses from this department
-                dept_courses = find_courses_by_dept(dept)
-                found_courses.extend(dept_courses)
-    
-    # If still no courses found, try to match by title
-    if not found_courses:
-        print("[DEBUG] Checking for course titles in the answer")
-        # Look for course titles in the answer
-        for course in courses:
-            title = course["title"]
-            # Only check titles with at least 5 characters to avoid too many false positives
-            if len(title) >= 5 and title in answer:
-                print(f"[DEBUG] Found course by title: {course['abbreviation']} {course['courseNumber']} - {title}")
-                found_courses.append(course)
-                # Limit to 5 courses to avoid overwhelming the UI
-                if len(found_courses) >= 5:
-                    break
+    # If we found specific courses, return those
+    if found_courses:
+        print(f"[DEBUG] Found {len(found_courses)} exact course matches")
+    else:
+        # First check for course IDs in the format Q291cnNlVHlwZToxMjM0
+        course_id_pattern = r'Q291cnNlVHlwZTo[A-Za-z0-9+/=]+'
+        course_ids = re.findall(course_id_pattern, answer)
+        print(f"[DEBUG] Found {len(course_ids)} course IDs in answer")
         
-        # If still no courses found, try a more flexible approach with quotes and course name patterns
+        # Add courses found by IDs
+        for course_id in course_ids:
+            course = find_course_by_id(course_id)
+            if course and course not in found_courses:
+                found_courses.append(course)
+        
+        # If no courses found by IDs or course codes, try to find department names
         if not found_courses:
-            # Look for text in quotes that might be course titles
-            quoted_titles = re.findall(r'"([^"]+)"', answer)
-            print(f"[DEBUG] Found {len(quoted_titles)} quoted potential course titles")
+            print("[DEBUG] No courses found by IDs, checking department names")
             
-            for quoted_text in quoted_titles:
-                # Clean up the quoted text
-                clean_text = quoted_text.strip()
-                if len(clean_text) < 5:  # Skip very short titles
-                    continue
-                    
-                # Find the most similar course title
-                best_match = None
-                best_match_ratio = 0
+            # Extract subject areas from the answer (e.g., "math courses")
+            subject_pattern = r'\b(math|computer science|engineering|physics|chemistry|biology|economics|history|english|political science|classics)\b.*\b(course|class)'
+            subjects = re.findall(subject_pattern, answer.lower())
+            
+            # Map subjects to department abbreviations
+            subject_to_dept = {
+                'math': ['MATH', 'STAT'],
+                'computer science': ['COMPSCI', 'CS', 'DATA', 'INFO'],
+                'engineering': ['ENGIN', 'EL ENG', 'MEC ENG', 'CIV ENG', 'BIO ENG', 'CHM ENG'],
+                'physics': ['PHYSICS'],
+                'chemistry': ['CHEM'],
+                'classics': ['CLASSIC'],
+                'biology': ['BIO', 'MCELLBI', 'INTEGBI'],
+                'economics': ['ECON'],
+                'history': ['HISTORY'],
+                'english': ['ENGLISH'],
+                'political science': ['POL SCI'],
+                # Add more mappings as needed
+            }
+            
+            # Check for department names in the answer
+            target_depts = []
+            for subject, _ in subjects:
+                if subject in subject_to_dept:
+                    target_depts.extend(subject_to_dept[subject])
+            
+            # Special case for "math" - verify if we're really talking about math
+            has_math_request = re.search(r'\b(math)\b', question.lower()) is not None
+            if has_math_request and any(dept in answer for dept in ['MATH', 'STAT']):
+                # If the query asks for math but math depts aren't in answer, check if any real math courses exist
+                math_depts = ['MATH', 'STAT']
+                available_math_courses = []
+                for dept in math_depts:
+                    available_math_courses.extend(find_courses_by_dept(dept))
                 
-                for course in courses:
-                    title = course["title"]
-                    # Simple substring match first
-                    if clean_text in title or title in clean_text:
-                        ratio = len(clean_text) / max(len(clean_text), len(title))
-                        if ratio > best_match_ratio:
-                            best_match = course
-                            best_match_ratio = ratio
-                
-                # If we found a good match, add it
-                if best_match_ratio > 0.5:  # At least 50% similar
-                    print(f"[DEBUG] Found course by quoted title: {best_match['abbreviation']} {best_match['courseNumber']} - {best_match['title']}")
-                    found_courses.append(best_match)
+                if available_math_courses:
+                    print(f"[DEBUG] Found {len(available_math_courses)} math courses with open seats")
+                    found_courses = available_math_courses[:5]  # Limit to 5 courses
+                    return json.dumps({
+                        "text": f"Available math courses with open seats: " + ", ".join([f"{c['abbreviation']} {c['courseNumber']}" for c in found_courses]),
+                        "courses": found_courses
+                    })
+            
+            # If we have target departments, prioritize them
+            if target_depts:
+                print(f"[DEBUG] Found subject areas: {target_depts}")
+                for dept in target_depts:
+                    dept_courses = find_courses_by_dept(dept)
+                    for course in dept_courses:
+                        if course not in found_courses:
+                            found_courses.append(course)
+                    # If we have enough courses, stop adding more
                     if len(found_courses) >= 5:
                         break
+            else:
+                # Look for department abbreviations in the answer
+                for dept in dept_abbreviations:
+                    # Use word boundary to match whole abbreviations
+                    if re.search(r'\b' + re.escape(dept) + r'\b', answer):
+                        print(f"[DEBUG] Found department in answer: {dept}")
+                        # Add some sample courses from this department
+                        dept_courses = find_courses_by_dept(dept)
+                        for course in dept_courses:
+                            if course not in found_courses:
+                                found_courses.append(course)
+        
+        # If still no courses found, try to match by title
+        if not found_courses:
+            print("[DEBUG] Checking for course titles in the answer")
+            # Look for course titles in the answer
+            for course in courses:
+                title = course["title"]
+                # Only check titles with at least 5 characters to avoid too many false positives
+                if len(title) >= 5 and title in answer:
+                    print(f"[DEBUG] Found course by title: {course['abbreviation']} {course['courseNumber']} - {title}")
+                    if course not in found_courses:
+                        found_courses.append(course)
+                    # Limit to 5 courses to avoid overwhelming the UI
+                    if len(found_courses) >= 5:
+                        break
+            
+            # If still no courses found, try a more flexible approach with quotes and course name patterns
+            if not found_courses:
+                # Look for text in quotes that might be course titles
+                quoted_titles = re.findall(r'"([^"]+)"', answer)
+                print(f"[DEBUG] Found {len(quoted_titles)} quoted potential course titles")
+                
+                for quoted_text in quoted_titles:
+                    # Clean up the quoted text
+                    clean_text = quoted_text.strip()
+                    if len(clean_text) < 5:  # Skip very short titles
+                        continue
+                        
+                    # Find the most similar course title
+                    best_match = None
+                    best_match_ratio = 0
+                    
+                    for course in courses:
+                        title = course["title"]
+                        # Simple substring match first
+                        if clean_text in title or title in clean_text:
+                            ratio = len(clean_text) / max(len(clean_text), len(title))
+                            if ratio > best_match_ratio:
+                                best_match = course
+                                best_match_ratio = ratio
+                    
+                    # If we found a good match, add it
+                    if best_match_ratio > 0.5:  # At least 50% similar
+                        print(f"[DEBUG] Found course by quoted title: {best_match['abbreviation']} {best_match['courseNumber']} - {best_match['title']}")
+                        if best_match not in found_courses:
+                            found_courses.append(best_match)
+                        if len(found_courses) >= 5:
+                            break
     
     # Always return as JSON
     result = json.dumps({
@@ -172,11 +308,40 @@ def build_context_from_history(chat_history):
     
     return context
 
+# Function to extract subject from question
+def extract_subject_from_question(question):
+    q_lower = question.lower()
+    
+    # Check for specific subject patterns
+    subject_patterns = [
+        (r'\b(math|mathematics)\b', 'math'),
+        (r'\bcomp(uter)?\s*sci(ence)?\b', 'computer science'),
+        (r'\bengin(eering)?\b', 'engineering'),
+        (r'\bphysics\b', 'physics'),
+        (r'\bchem(istry)?\b', 'chemistry'),
+        (r'\bbio(logy)?\b', 'biology'),
+        (r'\becon(omics)?\b', 'economics'),
+        (r'\bhist(ory)?\b', 'history'),
+        (r'\benglish\b', 'english'),
+        (r'\bpol(itical)?\s*sci(ence)?\b', 'political science'),
+        (r'\bclassic(s|al)?\b', 'classics')
+    ]
+    
+    for pattern, subject in subject_patterns:
+        if re.search(pattern, q_lower):
+            print(f"[DEBUG] Detected subject area in question: {subject}")
+            return subject
+    
+    return None
+
 # 4) Simple router with chat history support
 def answer_with_context(question, chat_history=None):
     print(f"[DEBUG] Processing question: {question}")
     if chat_history:
         print(f"[DEBUG] Chat history provided with {len(chat_history)} messages")
+    
+    # Extract subject from question to guide search
+    requested_subject = extract_subject_from_question(question)
     
     # Build context string from chat history
     context = build_context_from_history(chat_history)
@@ -186,6 +351,55 @@ def answer_with_context(question, chat_history=None):
     if context:
         context_enhanced_question = f"{context}\nCurrent question: {question}\n\nAnswer the current question using the previous conversation for context."
         print(f"[DEBUG] Enhanced question with context: {context_enhanced_question[:100]}...")
+    
+    # Check if query is about specific subject courses
+    if requested_subject and re.search(r'\b(open|available|free|have)\b.*\b(seats|space|spots)\b', question.lower()):
+        print(f"[DEBUG] Query is about {requested_subject} courses with open seats")
+        subject_to_dept = {
+            'math': ['MATH', 'STAT'],
+            'computer science': ['COMPSCI', 'CS', 'DATA', 'INFO'],
+            'engineering': ['ENGIN', 'EL ENG', 'MEC ENG', 'CIV ENG', 'BIO ENG', 'CHM ENG'],
+            'physics': ['PHYSICS'],
+            'chemistry': ['CHEM'],
+            'classics': ['CLASSIC'],
+            'biology': ['BIO', 'MCELLBI', 'INTEGBI'],
+            'economics': ['ECON'],
+            'history': ['HISTORY'],
+            'english': ['ENGLISH'],
+            'political science': ['POL SCI'],
+        }
+        
+        if requested_subject in subject_to_dept:
+            target_depts = subject_to_dept[requested_subject]
+            available_courses = []
+            
+            for dept in target_depts:
+                available_courses.extend(find_courses_by_dept(dept))
+                
+            if available_courses:
+                print(f"[DEBUG] Found {len(available_courses)} courses in {requested_subject}")
+                
+                # Ensure we don't return too many courses
+                selected_courses = available_courses[:5]
+                
+                # Create a nicely formatted text response
+                if len(selected_courses) == 1:
+                    text_response = f"The only {requested_subject} class with open seats is {selected_courses[0]['title']} ({selected_courses[0]['abbreviation']} {selected_courses[0]['courseNumber']}) with {selected_courses[0]['openSeats']} open seats."
+                else:
+                    course_descriptions = [f"{c['title']} ({c['abbreviation']} {c['courseNumber']}) with {c['openSeats']} open seats" for c in selected_courses]
+                    text_response = f"Available {requested_subject} courses with open seats: {', '.join(course_descriptions)}"
+                
+                result = json.dumps({
+                    "text": text_response,
+                    "courses": selected_courses
+                })
+                
+                print(f"[DEBUG] Returning {len(selected_courses)} courses based on subject")
+                return result
+            else:
+                text_response = f"I couldn't find any {requested_subject} courses with open seats."
+                print(f"[DEBUG] No available courses found for {requested_subject}")
+                return json.dumps({"text": text_response, "courses": []})
     
     # Check for special patterns in the original question
     q_low = question.lower()
@@ -209,7 +423,7 @@ def answer_with_context(question, chat_history=None):
         answer_text = qa.run(context_enhanced_question)
         print(f"[DEBUG] QA returned: {answer_text[:50]}...")
         # Always process to JSON format
-        return process_answer(answer_text)
+        return process_answer(answer_text, question, requested_subject)
     
     # Handle regular queries
     print("[DEBUG] No special patterns matched, using general QA")
@@ -217,7 +431,7 @@ def answer_with_context(question, chat_history=None):
     print(f"[DEBUG] QA returned: {answer_text[:50]}...")
     
     # Try to process, but if no courses are found, return the plain text
-    processed = process_answer(answer_text)
+    processed = process_answer(answer_text, question, requested_subject)
     try:
         # If we processed but didn't find any courses, return the original text
         parsed = json.loads(processed)
