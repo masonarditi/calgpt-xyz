@@ -15,8 +15,6 @@ export type CourseData = {
 }
 
 export default function CourseCard({ course }: { course: CourseData }) {
-  const enrolledPercent = (course.enrolledPercentage * 100).toFixed(1)
-  
   // Helper to determine grade difficulty color
   const getGradeColor = () => {
     if (!course.letterAverage && !course.gradeAverage) return '';
@@ -53,41 +51,35 @@ export default function CourseCard({ course }: { course: CourseData }) {
         duration: 0.3,
         ease: [0.22, 1, 0.36, 1],
       }}
-      className="mb-1"
+      className="mb-3 hover:bg-white/50 rounded-xl p-2 transition-colors"
     >
-      <div className="flex items-center gap-1.5 group">
-        {/* Course code bubble */}
-        <div className="bg-blue-100 text-blue-700 rounded-full py-1 px-2.5 text-xs font-semibold flex-shrink-0">
+      <div className="flex items-center gap-3">
+        {/* Course code */}
+        <div className="bg-blue-100 text-blue-700 rounded-xl py-1 px-3 text-xs font-semibold flex-shrink-0">
           {course.abbreviation} {course.courseNumber}
         </div>
         
         {/* Course title */}
-        <div className="flex-grow">
-          <p className="text-xs text-gray-800 font-medium truncate max-w-[14rem]">{course.title}</p>
-          
-          {/* Units and Grade info */}
-          {(course.units || course.letterAverage || course.gradeAverage) && (
-            <p className="text-[10px] text-gray-500 truncate max-w-[14rem]">
-              {course.units && `${course.units} units`}
-              {course.units && (course.letterAverage || course.gradeAverage) && ' • '}
-              {(course.letterAverage || course.gradeAverage) && (
-                <span className={`px-1 rounded ${gradeColorClass}`}>
-                  {course.letterAverage || (course.gradeAverage ? course.gradeAverage.toFixed(2) : '')}
-                </span>
-              )}
-            </p>
-          )}
+        <div className="flex-grow min-w-0 max-w-[50%]">
+          <p className="text-xs text-gray-800 font-medium truncate">{course.title}</p>
         </div>
         
         {/* Course stats */}
-        <div className="flex items-center gap-1.5 text-xs">
-          <div className="bg-gray-100 text-gray-700 rounded-full py-0.5 px-2 flex items-center gap-0.5">
-            <span className="text-[10px] text-gray-500 mr-0.5">Seats</span>
-            <span className="font-semibold">{course.openSeats}</span>
-          </div>
-          <div className="bg-gray-100 text-gray-700 rounded-full py-0.5 px-2 flex items-center gap-0.5">
-            <span className="text-[10px] text-gray-500 mr-0.5">Fill</span>
-            <span className="font-semibold">{enrolledPercent}%</span>
+        <div className="flex items-center gap-2 text-xs flex-shrink-0">
+          {course.units && (
+            <div className="bg-gray-100 text-gray-700 rounded-full py-1 px-2">
+              <span className="font-medium">Units</span> {course.units}
+            </div>
+          )}
+          
+          {(course.letterAverage || course.gradeAverage) && (
+            <div className={`rounded-full py-1 px-2 ${gradeColorClass}`}>
+              <span className="font-medium">Avg</span> {course.letterAverage || (course.gradeAverage ? course.gradeAverage.toFixed(1) : '')}
+            </div>
+          )}
+          
+          <div className="bg-gray-100 text-gray-700 rounded-full py-1 px-2">
+            <span className="font-medium">Seats</span> {course.openSeats}
           </div>
         </div>
       </div>
