@@ -217,7 +217,7 @@ export default function HomePage() {
       
       {/* Fixed Chat Input at the top - Animates in after first message */}
       <motion.div 
-        className="sticky top-0 z-20 bg-blue-50 pt-6 pb-2 px-4"
+        className="sticky top-0 z-20 bg-blue-50 pt-4 pb-2 px-4 md:pt-6 mt-2 md:mt-0"
         initial={!hasSentFirstMessage && !isTransitioning ? { opacity: 0 } : { opacity: 1 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
@@ -244,7 +244,7 @@ export default function HomePage() {
       </motion.div>
       
       {/* Main Content Area */}
-      <div className="flex-1 p-4 pb-28 pt-6">
+      <div className="flex-1 p-4 pb-28 pt-4">
         <div className="max-w-xl mx-auto flex flex-col gap-4">
           {/* Chat Messages */}
           <AnimatePresence>
