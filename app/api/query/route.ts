@@ -3,8 +3,9 @@ import { spawn } from 'child_process'
 import path from 'path'
 
 export async function POST(request: Request) {
-  const { question } = await request.json()
+  const { question, chatHistory } = await request.json()
   console.log(`[API] Received question: ${question}`)
+  console.log(`[API] Chat history length: ${chatHistory?.length || 0}`)
 
   // We're already in the project root, so just grab query.py here
   const scriptPath = path.join(process.cwd(), 'query.py')
@@ -50,7 +51,12 @@ export async function POST(request: Request) {
       }
     })
 
-    py.stdin.write(question + '\n')
+    // Send question and chat history to Python script in JSON format
+    const inputData = JSON.stringify({
+      question,
+      chatHistory: chatHistory || []
+    })
+    py.stdin.write(inputData + '\n')
     py.stdin.end()
   })
 }

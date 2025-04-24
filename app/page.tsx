@@ -52,6 +52,16 @@ export default function HomePage() {
     setCurrentCourses(newestCourses);
   }, [messages]);
 
+  // Create a chat history for context
+  const getChatHistory = () => {
+    // Limit chat history to the last 10 messages for context window efficiency
+    const historyMessages = messages.slice(-10);
+    return historyMessages.map(msg => ({
+      role: msg.from === 'user' ? 'user' : 'assistant',
+      content: msg.text
+    }));
+  };
+
   const handleSend = async (msg: string, personalized: boolean) => {
     if (!hasSentFirstMessage) {
       // Start transition animation
@@ -68,10 +78,16 @@ export default function HomePage() {
     setMessages((m) => [...m, { from: 'user', text: msg, timestamp }])
     setLoading(true)
     try {
+      // Get chat history for context
+      const chatHistory = getChatHistory();
+      
       const res = await fetch('/api/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: msg })
+        body: JSON.stringify({ 
+          question: msg,
+          chatHistory: chatHistory
+        })
       })
       const { answer, error } = await res.json()
       

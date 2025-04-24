@@ -2,10 +2,14 @@
 import json
 import re
 import requests
+import sys
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import OpenAIEmbeddings
 from langchain_community.llms import OpenAI
 from langchain.chains import RetrievalQA
+from langchain.chains import ConversationChain
+from langchain.memory import ConversationBufferMemory
+from langchain.prompts import ChatPromptTemplate
 import os
 from dotenv import load_dotenv
 
@@ -24,8 +28,11 @@ db = FAISS.load_local(
     emb,
     allow_dangerous_deserialization=True
 )
+
+# Creating a chat-aware QA system
+llm = OpenAI(temperature=0)
 qa = RetrievalQA.from_chain_type(
-    llm=OpenAI(temperature=0),
+    llm=llm,
     chain_type="stuff",
     retriever=db.as_retriever()
 )
@@ -153,10 +160,35 @@ def process_answer(answer):
     print(f"[DEBUG] process_answer returning {len(found_courses)} courses, JSON length: {len(result)}")
     return result
 
-# 4) Simple router
-def answer(q):
-    print(f"[DEBUG] Processing question: {q}")
-    q_low = q.lower()
+# Function to build context from previous messages
+def build_context_from_history(chat_history):
+    if not chat_history or len(chat_history) == 0:
+        return ""
+    
+    context = "Previous conversation:\n"
+    for msg in chat_history:
+        role = "User" if msg["role"] == "user" else "Assistant"
+        context += f"{role}: {msg['content']}\n"
+    
+    return context
+
+# 4) Simple router with chat history support
+def answer_with_context(question, chat_history=None):
+    print(f"[DEBUG] Processing question: {question}")
+    if chat_history:
+        print(f"[DEBUG] Chat history provided with {len(chat_history)} messages")
+    
+    # Build context string from chat history
+    context = build_context_from_history(chat_history)
+    context_enhanced_question = question
+    
+    # Only add context if we have chat history
+    if context:
+        context_enhanced_question = f"{context}\nCurrent question: {question}\n\nAnswer the current question using the previous conversation for context."
+        print(f"[DEBUG] Enhanced question with context: {context_enhanced_question[:100]}...")
+    
+    # Check for special patterns in the original question
+    q_low = question.lower()
     
     if re.search(r"\b(most|max)\b.*\bopen seats\b", q_low):
         print("[DEBUG] Matched pattern for most_open_seats")
@@ -174,14 +206,14 @@ def answer(q):
        re.search(r"\b(courses|classes)\b.*\b(open|available|free|have)\b", q_low):
         print("[DEBUG] Matched pattern for courses/classes with open seats")
         # Get a generic answer from the QA system
-        answer_text = qa.run(q)
+        answer_text = qa.run(context_enhanced_question)
         print(f"[DEBUG] QA returned: {answer_text[:50]}...")
         # Always process to JSON format
         return process_answer(answer_text)
     
     # Handle regular queries
     print("[DEBUG] No special patterns matched, using general QA")
-    answer_text = qa.run(q)
+    answer_text = qa.run(context_enhanced_question)
     print(f"[DEBUG] QA returned: {answer_text[:50]}...")
     
     # Try to process, but if no courses are found, return the plain text
@@ -198,4 +230,9 @@ def answer(q):
 
 # 5) CLI entrypoint
 if __name__ == "__main__":
-    print(answer(input("Your question: ")))
+    # Read input as JSON to get both question and chat history
+    input_data = json.loads(sys.stdin.readline().strip())
+    question = input_data.get("question", "")
+    chat_history = input_data.get("chatHistory", [])
+    
+    print(answer_with_context(question, chat_history))
