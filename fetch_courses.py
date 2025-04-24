@@ -24,6 +24,9 @@ query GetCoursesForFilter($playlists: String!) {
         title
         openSeats
         enrolledPercentage
+        units
+        letterAverage
+        gradeAverage
       }
     }
   }
