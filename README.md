@@ -1,4 +1,4 @@
-this is a next app to help make course scheduling easier at uc berkeley
+this is a next and python app to help make course scheduling easier at uc berkeley
 
 built this in three days solo, if this is interesting to anyone email me (masonarditi@berkeley.edu) and we can chat or maybe make it for your school.
 
