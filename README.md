@@ -12,6 +12,7 @@ demo: https://tinyurl.com/calgpt-xyz
 
 if you wanna run this:
 - clone repo
+- setup .env with OPENAI_API_KEY
 - set up a venv for your python file
 - activate venv
 - install requirements.txt
